@@ -52,6 +52,11 @@ if [[ ! -d "$PROJECT_ROOT" ]]; then
     exit 1
 fi
 
+if ! git -C "$PROJECT_ROOT" rev-parse --is-inside-work-tree &>/dev/null; then
+    echo "Error: '$PROJECT_ROOT' is not inside a git repository. Run 'git init' first." >&2
+    exit 1
+fi
+
 ARTIFACTS_DIR="$PROJECT_ROOT/.artifacts"
 
 if [[ -f "$ARTIFACTS_DIR/registry.json" ]]; then
