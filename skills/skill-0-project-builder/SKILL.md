@@ -168,6 +168,16 @@ Then write coverage-matrix directly to `.artifacts/coverage/` and commit.
 
 生成 Skill 1 时需要记录 Skill 6 的可用状态和路径，以便 Skill 1 知道如何与 artifact 空间交互。
 
+### Step 6.5: Bootstrap 完成性验证
+
+在生成 Skill 1 之前，运行 `scripts/verify-bootstrap.sh` 检查所有前置步骤的产出是否完整：
+
+```bash
+bash scripts/verify-bootstrap.sh --project-root /path/to/project
+```
+
+这个脚本会检查 manifest、env-report、module-reports、测试执行证据、coverage-matrix、artifact 空间等 26 个检查项。任何 BLOCKING 级别的失败都必须修复后才能继续——它确保 Skill 1 的数据来源完整可靠，不会因为前面跳过了某个步骤而产出不完整的 Skill 1。
+
 ### Step 7: 生成 Skill 1
 
 Skill 1 是一个**轻量行为引擎**——行为指令在 SKILL.md 中，数据在 `.artifacts/` 中。不嵌入大量内容到 SKILL.md。
@@ -306,6 +316,7 @@ skill-creator 加载后，**必须完成以下 checklist 中的每一项**（不
 | `scripts/env-setup.sh` | 尝试自动配置缺失依赖 |
 | `scripts/run-full-tests.sh` | 运行全部测试 → test-baseline.json |
 | `scripts/init-artifact-space.sh` | 初始化 .artifacts/ 目录（无 Skill 6 时的 fallback） |
+| `scripts/verify-bootstrap.sh` | Step 6.5: 验证所有前置步骤产出完整（26 项检查） |
 | `scripts/verify-skill1.sh` | 验证 Skill 1 的 test-runner 与基线一致 |
 | `scripts/self-test.sh` | 验证所有脚本正常工作 |
 
