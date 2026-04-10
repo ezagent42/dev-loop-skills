@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["version", "artifacts"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "status", "producer", "path", "created_at", "updated_at"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(eval-doc|code-diff|test-plan|test-diff|e2e-report|issue|coverage-matrix)-\\d{3}$",
+            "description": "Unique ID: {type}-{three-digit seq}"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name (Chinese or English)"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["eval-doc", "code-diff", "test-plan", "test-diff", "e2e-report", "issue", "coverage-matrix"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "confirmed", "executed", "archived"]
+          },
+          "producer": {
+            "type": "string",
+            "description": "Which skill or phase produced this (e.g. skill-5, phase-2)"
+          },
+          "consumers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "Skills that have consumed this artifact"
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative path from project root (e.g. .artifacts/eval-docs/eval-agent-dm-001.md)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "related_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": [],
+            "description": "IDs of related artifacts (bidirectional links)"
+          }
+        }
+      }
+    }
+  }
+}

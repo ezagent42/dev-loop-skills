@@ -1,0 +1,20 @@
+{
+  "name": "dev-loop-skills",
+  "description": "Development loop skills: 7-skill pipeline for project onboarding, knowledge Q&A, test planning, test writing, test execution, feature evaluation, and artifact management",
+  "version": "0.1.0",
+  "author": {
+    "name": "Sy Yao"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dev-loop",
+    "testing",
+    "e2e",
+    "pipeline",
+    "artifact",
+    "project-onboarding",
+    "test-plan",
+    "test-runner",
+    "feature-eval"
+  ]
+}

@@ -1,0 +1,7 @@
+# 开发产物
+*-workspace/
+*.pyc
+__pycache__/
+
+# 项目特定的 Skill 1（由 Skill 0 动态生成）
+skill-1-*/
