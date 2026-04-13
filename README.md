@@ -48,30 +48,39 @@ Phase 8: Feedback Loop
 
 **跨阶段可用：** Skill 1 (Knowledge Q&A) 和 Skill 6 (Artifact Registry) 在任何阶段都可调用。
 
-## 安装
+## 安装（一行命令，含自动更新）
 
-### 方式 1：skill 目录引用
+```bash
+git clone git@github.com:ezagent42/dev-loop-skills.git ~/.claude/plugins/dev-loop-skills
+```
 
-在 `~/.claude/settings.json` 中添加：
+安装后在 `~/.claude/settings.json` 的 `hooks.SessionStart` 中添加自动更新：
 
 ```json
 {
-  "skills": [
-    "~/.claude/skills/dev-loop-skills/skills"
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "git -C ~/.claude/plugins/dev-loop-skills pull --ff-only 2>/dev/null || true"
+      }
+    ]
+  }
 }
 ```
 
-### 方式 2：作为 plugin（推荐）
+**效果**：每次启动 Claude Code 新会话时自动从 GitHub 拉取最新版本。你这边 push 后，同事下次打开 Claude Code 即可使用新版。
 
-将 `dev-loop-skills` 目录放在 `~/.claude/plugins/` 下，或在 `settings.json` 中注册：
+也可以用安装脚本一步完成（clone + 配置 hook）：
 
-```json
-{
-  "plugins": [
-    "~/.claude/skills/dev-loop-skills"
-  ]
-}
+```bash
+bash install.sh
+```
+
+### 手动更新
+
+```bash
+cd ~/.claude/plugins/dev-loop-skills && git pull
 ```
 
 ## 使用

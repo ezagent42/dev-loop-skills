@@ -34,7 +34,7 @@ test-plan-generator 将三类信息统一为结构化的测试用例，每个用
 
 | 来源 | artifact 类型 | 说明 | 是否必须 |
 |------|--------------|------|----------|
-| Phase 2 开发产出 | `code-diff` | 代码改动摘要：文件列表、改动类型、影响模块 | 必须（至少一个触发源） |
+| Phase 2 开发产出 | `code-diff` | 代码改动摘要：文件列表、改动类型、影响模块 | 自动生成（见 Step 0） |
 | Skill 0/4 产出 | `coverage-matrix` | 已有 E2E 覆盖矩阵：哪些场景有覆盖 | 推荐 |
 | Skill 5 产出 | `eval-doc` | 预期 vs 实际对比，含 testcase 列表 | 可选 |
 | Skill 5 产出 | `issue` | GitHub issue 引用，含 bug 复现步骤 | 可选 |
@@ -43,6 +43,45 @@ test-plan-generator 将三类信息统一为结构化的测试用例，每个用
 查询示例：通过 Skill 6 的 `query.sh` 按 type 和 status 过滤，详见 `references/artifact-commands.md`。
 
 ## 执行流程
+
+### Step 0: 自动生成 code-diff（如果不存在）
+
+当用户要求生成测试计划但 `.artifacts/code-diffs/` 中没有可用的 code-diff artifact 时（或用户说"我改了代码，帮我生成 plan"但未指定具体 diff 文件），自动从 git 历史生成：
+
+1. **检查是否有现成 code-diff** — 查询 `query.sh --type code-diff --status draft`
+2. **如果没有**，从 git 提取改动：
+   ```bash
+   # 对比当前分支与 main 的差异
+   git diff main...HEAD --stat
+   git diff main...HEAD --name-status
+   # 或对比最近 N 个 commit
+   git log --oneline -10
+   git diff HEAD~N --name-status
+   ```
+3. **生成 code-diff artifact** — 按以下格式写入 `.artifacts/code-diffs/diff-{描述}-{序号}.md`：
+   ```markdown
+   ---
+   type: code-diff
+   id: code-diff-{序号}
+   status: draft
+   producer: skill-2
+   created_at: "{ISO时间}"
+   ---
+   # Code Diff: {描述}
+   ## 变更文件
+   - {M|A|D} {文件路径} ({简要说明})
+   ## 影响模块
+   - {模块名}
+   ## 改动类型
+   - {具体改动描述}
+   ```
+4. **注册到 registry** — 使用 `register.sh` 注册并 git commit
+5. 继续进入 Step 1
+
+**什么时候跳过 Step 0：**
+- 用户明确指定了 code-diff artifact（如"根据 code-diff-001 生成计划"）
+- 用户只要求从 eval-doc 或 coverage-gap 生成（不涉及代码改动）
+- `.artifacts/code-diffs/` 中已有 draft 状态的 code-diff
 
 ### Step 1: 收集输入 artifact
 

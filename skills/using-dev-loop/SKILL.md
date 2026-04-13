@@ -120,6 +120,8 @@ Some tasks require multiple skills in sequence:
 - **"I found a bug"** → Skill 5 (verify), then Skill 2 (plan tests for the bug), then Skill 6 (register)
 - **"What's our test coverage?"** → Skill 1 (query knowledge), then Skill 6 (check artifact status)
 - **"Test this feature end-to-end"** → Skill 2 (plan), Skill 3 (write), Skill 4 (run)
+- **产品需求讨论** → Skill 1 (讨论需求、验证理解、定位相关代码) → Skill 5 simulate (正式记录为 eval-doc，分析各 testcase 预期效果) → Skill 2 (从 eval-doc 生成 test-plan)
+- **Bug 分流** → Skill 5 verify (记录 bug，生成 eval-doc) → Skill 1 (讨论 eval-doc，读代码跑测试，给出分流判断) → 确认是 bug 则进入 Skill 2；不是 bug 则归档 eval-doc
 
 ## How to Access Skills
 
