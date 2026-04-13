@@ -48,69 +48,75 @@ Phase 8: Feedback Loop
 
 **跨阶段可用：** Skill 1 (Knowledge Q&A) 和 Skill 6 (Artifact Registry) 在任何阶段都可调用。
 
-## 安装（一行命令，含自动更新）
+## 安装
+
+### 通过 marketplace 安装（推荐）
 
 ```bash
-git clone git@github.com:ezagent42/dev-loop-skills.git ~/.claude/plugins/dev-loop-skills
+# 1. 注册 marketplace（一次性，告诉 Claude Code 去哪找 plugin）
+/plugin marketplace add ezagent42/ezagent42
+
+# 2. 安装 plugin（把代码下载到本地 cache）
+/plugin install dev-loop-skills@ezagent42
 ```
 
-安装后在 `~/.claude/settings.json` 的 `hooks.SessionStart` 中添加自动更新：
+### 通过项目 submodule 自动发现
 
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "git -C ~/.claude/plugins/dev-loop-skills pull --ff-only 2>/dev/null || true"
-      }
-    ]
-  }
-}
-```
-
-**效果**：每次启动 Claude Code 新会话时自动从 GitHub 拉取最新版本。你这边 push 后，同事下次打开 Claude Code 即可使用新版。
-
-也可以用安装脚本一步完成（clone + 配置 hook）：
+如果项目已包含 `ezagent42-marketplace` submodule（如 zchat），clone 项目时 marketplace 会自动被发现：
 
 ```bash
-bash install.sh
+git clone --recurse-submodules git@github.com:ezagent42/zchat.git
+cd zchat
+claude
+# Claude Code 自动发现 marketplace，但仍需手动安装一次：
+/plugin install dev-loop-skills@ezagent42
 ```
 
-### 手动更新
+新项目也可以添加同样的 submodule：
 
 ```bash
-cd ~/.claude/plugins/dev-loop-skills && git pull
+git submodule add https://github.com/ezagent42/ezagent42.git ezagent42-marketplace
+```
+
+### 更新
+
+```bash
+/plugin update dev-loop-skills@ezagent42
 ```
 
 ## 使用
 
-所有 skill 通过 Claude Code 的 `Skill` tool 调用：
+### 接入项目（每个项目一次）
 
-```
-# Bootstrap 新项目
-Skill tool → "project-builder"
+在项目目录下对 Claude Code 说：
 
-# 问项目问题
-Skill tool → "project-discussion-zchat"
+> bootstrap 这个项目
 
-# 生成测试计划
-Skill tool → "test-plan-generator"
+Skill 0 自动扫描代码、跑测试、生成 `.artifacts/` 和项目专属 Skill 1。
 
-# 写测试代码
-Skill tool → "test-code-writer"
+### 日常使用
 
-# 跑测试
-Skill tool → "test-runner"
+说自然语言即可，路由 skill `using-dev-loop` 自动判断触发哪个 skill：
 
-# 功能评估（simulate / verify）
-Skill tool → "feature-eval"
+| 你说 | 触发 |
+|------|------|
+| "agent_manager 怎么工作的？" | Skill 1 — 项目知识问答 |
+| "我想加一个 DM 功能，效果会怎样？" | Skill 5 simulate — 模拟分析 |
+| "发现 bug：scoped_name 返回了双前缀" | Skill 5 verify — 记录 bug |
+| "这是不是 bug？"（带着 eval-doc） | Skill 1 — 分流判断 |
+| "生成测试计划" | Skill 2 — 从 code-diff / gap / eval-doc 生成 |
+| "我改了代码，帮我生成 plan" | Skill 2 — 自动从 git diff 生成 code-diff 再生成 plan |
+| "确认这个测试计划" | Skill 2 — draft → confirmed |
+| "写测试代码" | Skill 3 — 从 confirmed plan 生成 pytest 代码 |
+| "跑 E2E 测试" | Skill 4 — 执行 + 生成报告 |
+| "这不是 bug，归档" | Skill 1 — archived + rejection_reason |
+| "查看 artifact 状态" | Skill 6 — registry 查询 |
 
-# 管理 artifact
-Skill tool → "artifact-registry"
-```
+### 协作流程
 
-路由 skill `using-dev-loop` 会自动判断用户意图并触发对应 skill。
+- **产品需求讨论** → Skill 1（讨论需求）→ Skill 5 simulate（正式记录 eval-doc）→ Skill 2（生成 test-plan）
+- **Bug 分流** → Skill 5 verify（记录 bug）→ Skill 1（分流判断）→ 确认是 bug 进入 Skill 2，不是则归档
+- **完整测试闭环** → Skill 2（plan）→ Skill 3（write）→ Skill 4（run）
 
 ## 目录结构
 
@@ -119,14 +125,16 @@ dev-loop-skills/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin 注册信息
 ├── package.json             # 包元数据
+├── install.sh               # 安装脚本（备用）
 ├── README.md                # 本文件
 └── skills/
-    ├── using-dev-loop/      # 路由 skill（判断触发哪个 skill）
+    ├── using-dev-loop/      # 路由 skill（自动判断触发哪个 skill）
     ├── skill-0-project-builder/
-    ├── skill-1-project-discussion-zchat/
     ├── skill-2-test-plan-generator/
     ├── skill-3-test-code-writer/
     ├── skill-4-test-runner/
     ├── skill-5-feature-eval/
     └── skill-6-artifact-registry/
 ```
+
+注：Skill 1 (project-discussion-*) 由 Skill 0 bootstrap 时自动生成，是项目专属的，不在本包内。
