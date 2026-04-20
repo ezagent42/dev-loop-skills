@@ -21,7 +21,12 @@
 │
 ├── e2e-reports/               # Skill 4 (test-runner) 产出
 │   └── report-{name}-{seq}/  # 每个 report 一个子目录
-│       └── report.md         # 正文（evidence 字段引用外部证据路径）
+│       ├── report.md         # 正文（evidence 字段引用证据路径）
+│       └── evidence/         # Playwright 等产出的二进制证据（按测试分目录）
+│           └── {test_id}/
+│               ├── *.png     # 截图（显式 + 失败自动）
+│               ├── video.webm   # 失败录像
+│               └── trace.zip    # Playwright trace
 │
 ├── issues/                    # Skill 5 (feature-eval) 产出
 │   └── issue-{name}-{seq}.md
@@ -39,9 +44,14 @@
 
 ## 证据文件
 
-证据文件（截图、terminal capture、asciinema 录制）**不**存放在 `.artifacts/` 中。它们保留在测试脚本的原始输出位置（如 `tests/pre_release/walkthrough-*.cast`）。e2e-report 的 `evidence` 字段引用这些路径。
+证据文件按来源类型分流：
 
-这样做的原因：不破坏已有测试脚本的输出约定，避免文件搬运的复杂性。
+- **Terminal capture / asciinema 录制** — 保留在测试脚本的原始输出位置（如 `tests/pre_release/walkthrough-*.cast`），不进 `.artifacts/`。原因：既有脚本已有固定输出约定，搬运成本高且易出错。
+- **Playwright 截图 / 录像 / trace（Web UI 项目）** — 产出到 `.artifacts/e2e-reports/report-{name}-{seq}/evidence/{test_id}/`，和 report 共址。原因：Web 项目没有既有输出约定，直接收敛到 report 目录便于 prd2impl 的 UI-regression 闭环定位。
+
+两种情况下，e2e-report 的 `evidence` 字段都引用实际路径；registry 通过 artifact ID 索引到 report，再由 report 的 evidence 表延伸到具体证据文件。
+
+git-lfs 配置对两种来源都生效（`.artifacts/.gitattributes` 以及仓库根级别的 `.gitattributes`，如有）。
 
 ## git-lfs 配置
 

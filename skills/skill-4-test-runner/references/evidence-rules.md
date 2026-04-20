@@ -55,19 +55,49 @@ tmux capture-pane -t {session}:{window} -p > /path/to/{date}-{test-id}-{step}.tx
 - 收到响应/状态变更后
 - 测试结束前（final state）
 
-### Screenshot（Web 应用）
+### Screenshot / Video / Trace（Web 应用 — pytest-playwright）
 
 适用场景：Web UI 测试、浏览器自动化。
 
-```python
-# Playwright 示例
-page.screenshot(path=f"{date}-{test_id}-{step}.png", full_page=True)
+**推荐路径：pytest-playwright 内置采集**
+
+在 runner 调用 pytest 时追加：
+
 ```
+--screenshot=only-on-failure \
+--video=retain-on-failure \
+--tracing=retain-on-failure \
+--output=.artifacts/e2e-reports/report-{name}-{seq}/evidence/
+```
+
+产出目录结构（`--output` 下由 pytest-playwright 自动生成）：
+
+```
+.artifacts/e2e-reports/report-{name}-{seq}/evidence/
+  {test_id}/
+    test-failed-1.png     # 失败时截图
+    video.webm            # 失败时完整录像
+    trace.zip             # Playwright trace（playwright show-trace 可回放）
+    01-loaded.png         # 测试内 page.screenshot 显式产出
+    02-submitted.png
+```
+
+绿色运行时，`only-on-failure` / `retain-on-failure` 不保留自动证据；显式 `page.screenshot()` 仍会保留（用于 happy-path 证明）。
+
+**显式截图（测试代码内）：**
+
+```python
+# 在 page 所在步骤之后
+page.screenshot(path=f"{evidence_dir}/01-checkout-loaded.png", full_page=True)
+```
+
+`evidence_dir` 由 skill-3 `references/playwright-pattern.md` 中定义的 fixture 提供，会解析为当前测试的证据子目录。
 
 内容要求：
 - 截图必须包含足够上下文，独立查看即可判断测试是否通过
 - 对于表单操作：截图应包含输入值和提交后的反馈
 - 对于列表/表格：截图应包含完整数据区域
+- 视口尺寸固定（见 playwright-pattern.md 中的 `browser_context_args`），否则跨环境截图漂移
 
 采集时机：
 - 页面加载完成后
@@ -125,7 +155,9 @@ JSON 文件结构：
 
 ## 存储位置
 
-证据文件**不**存放在 `.artifacts/` 目录中。保留在测试脚本的原始输出位置：
+证据文件**按来源类型分流**：
+
+**终端/CLI/asciinema 证据** — 保留在测试脚本的原始输出位置（历史约定，避免搬运）：
 
 ```
 tests/
@@ -136,6 +168,21 @@ tests/
 ├── pre_release/
 │   └── walkthrough-20260410-143022.cast   # asciinema 录制
 ```
+
+**Playwright 证据（新增）** — 和 e2e-report 共存于 `.artifacts/` 下，方便 prd2impl 闭环迭代查找：
+
+```
+.artifacts/e2e-reports/report-{name}-{seq}/
+├── report.md
+└── evidence/
+    └── {test_id}/
+        ├── 01-loaded.png
+        ├── test-failed-1.png
+        ├── video.webm
+        └── trace.zip
+```
+
+原因差异：asciinema/zellij 的工具链已经有固定输出位置，强行迁移会破坏既有脚本；pytest-playwright 没有既有约定，直接指定 `--output` 放到 report 目录下最省事，也让 [skill-6-continue-task (prd2impl)](../../../../prd2impl/skills/skill-6-continue-task/SKILL.md) 的 UI-regression 闭环可以基于一个稳定路径定位截图。
 
 e2e-report 中通过 `evidence` 字段引用这些路径：
 

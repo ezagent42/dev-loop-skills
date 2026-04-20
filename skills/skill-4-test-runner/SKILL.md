@@ -96,15 +96,25 @@ At critical verification points during test execution, capture evidence. The rul
 - `asciinema rec` for full session recording
 - Capture timing: after each major state transition (service started, message sent, response received)
 
-**Web applications:**
-- Screenshot via headless browser after each navigation/interaction
-- Save to `{date}-{test-id}-{step}.png`
+**Web applications (Playwright — preferred for UI projects):**
+- Pass these flags on the pytest invocation (runner adds them automatically when the suite uses `pytest-playwright`):
+  ```
+  --screenshot=only-on-failure \
+  --video=retain-on-failure \
+  --tracing=retain-on-failure \
+  --output=.artifacts/e2e-reports/report-{name}-{seq}/evidence/
+  ```
+- Explicit `page.screenshot(path=...)` inside tests produces positive-path evidence too.
+- No manual capture scripts required — pytest-playwright writes per-test subdirs under `--output`.
 
 **API tests:**
 - Save response body as `{date}-{test-id}-{step}.json`
 - Include status code, headers, and body
 
-Evidence files stay in the test output directory (not moved into `.artifacts/`). The report references them by path.
+**Evidence location rule (updated):**
+- Terminal/CLI/asciinema evidence stays in the project's original test output directory (e.g., `tests/e2e/evidence/`). The report references them by path.
+- Playwright evidence lands under `--output=.artifacts/e2e-reports/report-{name}-{seq}/evidence/` — colocated with the report so the closed-loop iteration in prd2impl can find it deterministically.
+- Either way, the runner scans the relevant directories after the pytest run completes and populates the report's evidence manifest automatically (see Step 7).
 
 ### Step 5: Classify results
 
@@ -144,7 +154,25 @@ Read the template from `templates/e2e-report.md` and fill in:
 3. **Regression failures highlighted** -- these are high-priority. If a regression case fails, it means the new feature broke existing functionality. The report calls this out prominently.
 4. Detailed per-test results with evidence references
 5. Newly discovered issues (unexpected behavior noticed during testing)
-6. Evidence manifest (all captured file paths)
+6. Evidence manifest (all captured file paths) — **auto-populated, not hand-written**
+
+**Evidence manifest auto-population**:
+
+After the pytest run completes, scan two roots and emit one row per file into the manifest table:
+
+1. The Playwright `--output` root (if the project uses pytest-playwright):
+   `.artifacts/e2e-reports/report-{name}-{seq}/evidence/`
+   - `*.png` → `type=screenshot`, `tool=playwright`
+   - `video.webm` → `type=video`, `tool=playwright`
+   - `trace.zip` → `type=trace`, `tool=playwright`
+   - Extract `{test-id}` from the parent subdirectory name; `{step}` from the file stem (`01-loaded.png` → `loaded`, `test-failed-1.png` → `failure`).
+
+2. The project's original terminal evidence directory (e.g., `tests/e2e/evidence/`):
+   - `*.txt` → `type=terminal-capture`, `tool=zellij|tmux` (decide by filename hint)
+   - `*.cast` → `type=session-recording`, `tool=asciinema`
+   - Extract `{test-id}` and `{step}` from the `{date}-{test-id}-{step}.{ext}` convention.
+
+For each failed test, cross-link the evidence rows into that test's "Evidence" sub-section of Step 5's detailed-results — the same file path appears both in the per-test section and in the global manifest.
 
 Write the report to `.artifacts/e2e-reports/report-{name}-{seq}/report.md`.
 

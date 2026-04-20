@@ -72,9 +72,18 @@ description: "Generate structured eval-docs that compare expected vs actual beha
 
 **触发信号**：用户报告问题 + 说"发现 bug"/"这个不对"/"不符合预期"/"验证"
 
+**输入来源（两种）：**
+
+| 来源 | 触发方 | 证据形态 |
+|------|--------|---------|
+| 人工反馈（默认） | 用户手工描述 + 可选截图 | 文字 + 可选媒体 |
+| 自动反馈（新增，由 prd2impl skill-6-continue-task 的 UI-regression 闭环触发） | 失败的 e2e-report | Playwright 截图/录像/trace 路径 + pytest traceback |
+
+自动反馈的处理跳过"引导描述问题"（Step 1），直接从 Step 2 开始，以 failed test 的 screenshot + traceback 作为 actual、eval-doc 上游的 expected（设计描述、mockup、或前一轮 eval-doc）作为 expected。
+
 **流程**：
 
-1. **引导描述问题**
+1. **引导描述问题**（仅人工反馈来源）
    - 加载 `references/feedback-guide.md` 中的引导模板
    - 按步骤引导用户描述：
      - 你做了什么操作？（具体步骤）
@@ -106,6 +115,25 @@ description: "Generate structured eval-docs that compare expected vs actual beha
      - **疑似不合理** — 行为技术上正确但用户体验差（流程繁琐、提示不清）
      - **需要讨论** — 无法判断是 bug 还是设计意图，需要更多上下文
    - 分流建议是给开发者的参考，不是最终裁定
+
+5a. **视觉差异分类（仅 UI 自动反馈来源）**
+
+   当输入包含 Playwright 截图时，额外产出一个"视觉差异分类"字段，供下游 prd2impl skill-6 决定路由到 test-plan 重生 vs test-code 重写：
+
+   | 分类 | 特征 | 下游路由 |
+   |------|------|---------|
+   | `layout-broken` | 元素错位/溢出/重叠、响应式断裂 | → skill-2 生成增量 test-plan（视觉校验用例） |
+   | `content-mismatch` | 文案、数字、时间戳与预期不符 | → skill-2 生成增量 test-plan（数据断言用例） |
+   | `element-missing` | 关键组件未渲染、按钮/输入框消失 | → skill-2 生成增量 test-plan（存在性用例） |
+   | `selector-drift` | DOM 结构变了，测试找错节点；业务行为可能正确 | → skill-3 重写测试（不改业务代码） |
+   | `timing-flaky` | 断言过早，后续状态其实会到达 | → skill-3 调整 `expect()` 超时 / 替换 `sleep` |
+
+   判断方法：
+   - 对比失败截图 vs eval-doc 里预期描述（或上一轮 mockup）
+   - 读 pytest traceback：`TimeoutError` + 元素可见 → 多半 `timing-flaky` 或 `selector-drift`
+   - 读 video/trace：元素存在但位置不对 → `layout-broken`
+
+   分类写入 eval-doc 的"分流建议"节的新增子字段 `visual_classification`。
 
 6. **创建 GitHub issue**
    - 运行 `scripts/create-issue.sh --eval-doc <path> --repo <owner/repo>`

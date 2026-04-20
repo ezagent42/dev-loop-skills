@@ -64,6 +64,14 @@ Also read the actual conftest.py and existing test files to understand current p
 
 ### Step 3: Plan the code changes
 
+First, **classify the test surface**:
+
+- If the test exercises a **Web UI** (browser navigation, DOM assertions, visual checkpoints) → follow `references/playwright-pattern.md`. Evidence (screenshot/video/trace) is produced automatically via `pytest-playwright` flags; do not hand-roll.
+- If the test exercises a **terminal / CLI / IRC** surface → follow `references/pytest-pattern.md`. Evidence is terminal captures via zellij/asciinema.
+- If the test exercises an **HTTP API only** → plain `pytest` + `httpx`/`requests`; evidence is saved response JSON.
+
+Signals that suggest a Web UI test: eval-doc mentions "page", "screen", "button", "form"; coverage-matrix flags the feature as `web`; the project already has `pytest-playwright` installed.
+
 For each test case in the plan, decide:
 
 1. **Which file?** -- Follow the rules in `references/append-rules.md`:
@@ -87,7 +95,11 @@ For each test case in the plan, decide:
 
 ### Step 4: Write the test code
 
-Generate the actual Python code following `references/pytest-pattern.md`:
+Generate the actual Python code following the pattern reference matching the classification from Step 3:
+- Terminal/CLI/API surface → `references/pytest-pattern.md`
+- Web UI surface → `references/playwright-pattern.md` (Playwright + auto-screenshot/video/trace)
+
+Common rules (all patterns):
 
 - Every test function gets `@pytest.mark.e2e`
 - Every test function gets a docstring explaining what user flow it validates
@@ -184,11 +196,12 @@ This skill works with different project types by querying Skill 1. The core flow
 - **Ordering**: tests are ordered because later phases depend on earlier state (agent must exist before sending messages)
 - **CLI invocation**: through `zchat_cli` fixture that injects `ZCHAT_HOME`
 
-### Web applications (agent-browser pattern)
-- **Fixtures**: browser session, test server, page objects
-- **Evidence**: screenshots, DOM assertions, network request captures
+### Web applications (Playwright pattern)
+- **Fixtures**: `page`, `browser_context_args` (from pytest-playwright), project-specific `live_server`, custom `evidence_dir` for per-step screenshots
+- **Evidence**: auto via `--screenshot=only-on-failure --video=retain-on-failure --tracing=retain-on-failure`; explicit `page.screenshot(path=...)` for positive-path checkpoints
 - **Ordering**: typically independent tests; less need for `pytest-order`
-- **CLI invocation**: through HTTP client or browser automation
+- **Invocation**: `page.goto(...)`, role-/text-based locators, `expect(...)` auto-waiting
+- **Full reference**: `references/playwright-pattern.md`
 
 The skill does not hardcode either pattern. It reads Skill 1's test pipeline info and the actual conftest.py to understand which pattern the project uses.
 
@@ -196,7 +209,8 @@ The skill does not hardcode either pattern. It reads Skill 1's test pipeline inf
 
 | File | Purpose | When to read |
 |------|---------|-------------|
-| `references/pytest-pattern.md` | How to structure pytest E2E cases, use fixtures, markers, ordering | Step 4 (writing code) |
+| `references/pytest-pattern.md` | Terminal/CLI/API pytest E2E: fixtures, markers, ordering, zellij/IRC evidence | Step 4, non-UI tests |
+| `references/playwright-pattern.md` | Web UI pytest E2E: Playwright fixtures, auto screenshot/video/trace, selector rules | Step 4, UI tests |
 | `references/append-rules.md` | When to append to existing files vs. create new ones | Step 3 (planning) |
 | `references/naming-convention.md` | File and function naming rules | Steps 3-4 |
 | `references/artifact-commands.md` | Skill 6 artifact-registry interaction commands | Step 6 (register) |
