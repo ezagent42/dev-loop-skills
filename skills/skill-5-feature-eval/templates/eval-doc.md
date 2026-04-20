@@ -76,6 +76,16 @@ error log here
 - 疑似不合理：功能技术上正确，但用户体验不符合预期
 - 需要讨论：无法确定是 bug 还是设计意图，需要更多上下文}
 
+**视觉差异分类**（仅当 source 为自动反馈 / 包含 Playwright 截图时填写）：
+
+`visual_classification`: {layout-broken / content-mismatch / element-missing / selector-drift / timing-flaky / n/a}
+
+**下游路由建议**：
+- `layout-broken` / `content-mismatch` / `element-missing` → skill-2-test-plan-generator 生成增量 test-plan
+- `selector-drift` / `timing-flaky` → skill-3-test-code-writer 重写/调整测试（不改业务代码）
+
+详见 [skill-5 SKILL.md 视觉差异分类表](../SKILL.md)。
+
 ## 后续行动
 
 <!-- 由 skill 自动填写 -->
