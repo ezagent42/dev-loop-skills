@@ -128,6 +128,8 @@ if $ALL; then
     for runner in "$(dirname "$0")"/test-*.sh; do
         [[ -f "$runner" ]] || continue
         name=$(basename "$runner")
+        # Skip the aggregator — it would re-invoke every sibling and double the work.
+        [[ "$name" == "test-all.sh" ]] && continue
         printf "  %-40s " "$name"
         if bash "$runner" > /dev/null 2>&1; then
             echo "PASS"
